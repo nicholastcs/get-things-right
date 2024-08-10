@@ -1,0 +1,44 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: networkpolicydenyall
+  annotations:
+    metadata.gatekeeper.sh/title: "Detects the lack of Deny-all Network Policy in Namespace."
+    metadata.gatekeeper.sh/requires-sync-data: |
+      "[
+        [
+          {
+            "groups":["networking.k8s.io"],
+            "versions": ["v1"],
+            "kinds": ["NetworkPolicy"]
+          }
+        ]
+      ]"
+    description: >-
+      Audits and warns the lack of deny-all network policy in a namespace.
+spec:
+  crd:
+    spec:
+      names:
+        kind: NetworkPolicyDenyAll
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package networkPolicyDenyAll
+
+        ns_name := input.review.object.metadata.name
+
+        violation [{"msg": msg}] {
+          input.review.kind.kind == "Namespace"
+
+          network_policies := object.get(data.inventory,
+            ["namespace", ns_name, "networking.k8s.io/v1", "NetworkPolicy"],
+            {},
+          )
+
+          count(network_policies) == 0
+
+          msg := sprintf("network policies must be defined in namespace `%s`",
+            [ns_name],
+          )
+        }

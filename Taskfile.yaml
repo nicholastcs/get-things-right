@@ -1,0 +1,27 @@
+version: '3'
+
+includes:
+  gatekeeper:
+    taskfile: ./gatekeeper.Taskfile.yaml
+
+tasks:
+  lint:
+    cmd: yamllint .
+    desc: Clean up YAML configuration files.
+
+  ensure:
+    cmds:
+      - minikube version
+      - helm version
+      - kubectl version
+      - yamllint --version
+    desc: Ensures everything are ready.
+
+  makeMinikube:
+    cmd: |
+      minikube start \
+      --kubernetes-version=v1.30 \
+      -n 3 \
+      --container-runtime=containerd \
+      --cni calico
+    desc: Creates minikube cluster with total 3 containerd and network policy enabled nodes.

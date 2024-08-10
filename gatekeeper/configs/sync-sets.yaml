@@ -1,0 +1,15 @@
+apiVersion: syncset.gatekeeper.sh/v1alpha1
+kind: SyncSet
+metadata:
+  name: syncset
+spec:
+  gvks:
+    - group: ""
+      version: "v1"
+      kind: "Namespace"
+    - group: ""
+      version: "v1"
+      kind: "Pod"
+    - group: "networking.k8s.io"
+      version: "v1"
+      kind: "NetworkPolicy"

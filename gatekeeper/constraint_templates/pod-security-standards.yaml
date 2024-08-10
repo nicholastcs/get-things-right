@@ -1,0 +1,44 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: podsecuritystandardlabel
+  annotations:
+    metadata.gatekeeper.sh/title: "Enforce Pod Security Standard."
+    description: >-
+      Blocks or audits namespace creation without pod security standard labeling,
+      its implementing constraint will enforce the preferred standard based on
+      `preferredStandard` value.
+spec:
+  crd:
+    spec:
+      names:
+        kind: PodSecurityStandardLabel
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            preferredStandard:
+              type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package podSecurityStandardLabel
+
+        required_label := "pod-security.kubernetes.io/enforce"
+        required_standard_value = input.parameters.preferredStandard
+
+        violation [{"msg": msg}] {
+          not input.review.object.metadata.labels[required_label]
+
+          msg := sprintf("you must provide label with key `%s` in namespace `%s`",
+            [required_label, input.review.object.metadata.name],
+          )
+        }
+
+        violation [{"msg": msg}] {
+          input.review.object.metadata.labels[required_label] != required_standard_value
+
+          msg := sprintf("you must provide label with key `%s` in namespace `%s` with standard value `%s`",
+            [required_label, input.review.object.metadata.name, required_standard_value],
+          )
+        }

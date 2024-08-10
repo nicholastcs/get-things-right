@@ -1,0 +1,46 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: deploymentresource
+  annotations:
+    metadata.gatekeeper.sh/title: "Deny deployment with undefined resource's request and limits."
+    description: >-
+      Audits and denies the lack of resource in a deployment.
+spec:
+  crd:
+    spec:
+      names:
+        kind: DeploymentResource
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package deploymentresource
+
+        import future.keywords.in
+
+        deployment := input.review.object
+
+        violation [{"msg": msg}] {
+          input.review.kind.kind == "Deployment"
+
+          paths_checks_by_warning := {
+            "empty resources object found": ["resources"],
+            "requests is undefined in resources object": ["resources", "requests"],
+            "limits is undefined in resources object": ["resources", "limits"],
+
+            "requests.cpu is undefined in resources.cpu object": ["resources", "requests", "cpu"],
+            "requests.memory is undefined in resources.memory object": ["resources", "requests", "memory"],
+
+            "limits.cpu is undefined in resources.cpu object": ["resources", "limits", "cpu"],
+            "limits.memory is undefined in resources.memory object": ["resources", "limits", "memory"],
+          }
+
+          some warning, path_check in paths_checks_by_warning
+          some container in deployment.spec.template.spec.containers
+          object.get(container, path_check, {}) == {}
+
+          msg := sprintf(
+            "in deployment `%s` has missing attribute of path `%s` in container resource object",
+            [deployment.metadata.name, concat(".", path_check)],
+          )
+        }

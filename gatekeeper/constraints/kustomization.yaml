@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: gatekeeper-constraints
+resources:
+  - baseline-pod-security-standards.yaml
+  - network-policies-deny-all.yaml
+  - deployment-resource.yaml

@@ -1,0 +1,33 @@
+version: '3'
+
+tasks:
+  apply:
+    desc: Iterate and apply the manifests in all sub-directories of gatekeeper/.
+    dir: ./gatekeeper
+    cmds:
+      - for:
+          - helm/
+          - configs/
+          - constraint_templates/
+          - constraints/
+          - dashboard/
+        cmd: |
+          kubectl kustomize ./{{ .ITEM }} --enable-helm | kubectl apply -f -;
+          sleep 5
+
+  delete:
+    desc: Iterate and delete the manifests in all sub-directories of gatekeeper/.
+    dir: ./gatekeeper
+    ignore_error: true
+    cmds:
+      - for:
+          - dashboard/
+          - constraints/
+          - constraint_templates/
+          - configs/
+          - helm/
+        cmd: kubectl kustomize ./{{ .ITEM }} --enable-helm | kubectl delete -f -
+
+  dashboardPortForward:
+    desc: Port-forwards Gatekeeper dashboard.
+    cmd: kubectl port-forward -n gatekeeper-system svc/gatekeeper-policy-manager 8080:80
